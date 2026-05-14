@@ -1,0 +1,139 @@
+import math
+import matplotlib.pyplot as plt
+import os
+
+
+def load_data(file_path):
+  X = []
+  Y = []
+  with open(file_path, 'r', encoding='utf-8') as f:
+    lines = f.readlines()
+    for line in lines[1:]:
+      parts = line.strip().split(',')
+      if len(parts) == 3:
+        exp = float(parts[0].strip())
+        sal = float(parts[1].strip())
+        loan = int(float(parts[2].strip()))
+        X.append([sal, exp])
+        Y.append(loan)
+  return X, Y
+
+
+def sigmoid(z):
+  z = max(-500, min(500, z))
+  return 1.0 / (1.0 + math.exp(-z))
+
+
+def predict_probability(x, w0, w1, w2):
+  z = w1 * x[0] + w2 * x[1] + w0
+  return sigmoid(z)
+
+
+def compute_loss(X, Y, w0, w1, w2):
+  N = len(Y)
+  total_loss = 0.0
+
+  for i in range(N):
+    z = w1 * X[i][0] + w2 * X[i][1] + w0
+
+    z = max(-500, min(500, z))
+
+    L_i = -Y[i] * z + math.log(1.0 + math.exp(z))
+    total_loss += L_i
+
+  return total_loss / N
+
+
+def train(X, Y, lr, epochs, verbose=True):
+  w0, w1, w2 = 0.0, 1.0, 2.0
+  N = len(Y)
+  loss_history = []
+
+  for epoch in range(epochs):
+    dw0, dw1, dw2 = 0.0, 0.0, 0.0
+
+    for i in range(N):
+      y_hat = predict_probability(X[i], w0, w1, w2)
+      error = y_hat - Y[i]
+      dw0 += error
+      dw1 += error * X[i][0]
+      dw2 += error * X[i][1]
+
+    w0 -= lr * (dw0 / N)
+    w1 -= lr * (dw1 / N)
+    w2 -= lr * (dw2 / N)
+
+    loss = compute_loss(X, Y, w0, w1, w2)
+    loss_history.append(loss)
+
+    if verbose and (epoch % 200 == 0 or epoch == epochs - 1):
+      print(f"Epoch {epoch:4d} | Loss: {loss:.4f} | Weights: w0={w0:.3f}, w1={w1:.3f}, w2={w2:.3f}")
+
+  return w0, w1, w2, loss_history
+
+
+def make_decision(x, w0, w1, w2, threshold=0.2):
+  prob = predict_probability(x, w0, w1, w2)
+  return 1 if prob >= threshold else 0
+
+
+if __name__ == "__main__":
+  script_dir = os.path.dirname(os.path.abspath(__file__))
+  csv_path = os.path.join(script_dir, 'loan2.csv')
+
+  X_train, Y_train = load_data(csv_path)
+
+  learning_rate = 0.1
+  epochs = 1000
+  w0, w1, w2, losses = train(X_train, Y_train, learning_rate, epochs)
+
+  test_profile = [7.0, 0.5]
+  t = 0.5
+
+  prob = predict_probability(test_profile, w0, w1, w2)
+  decision = make_decision(test_profile, w0, w1, w2, threshold=t)
+
+  print(f"\nPrediction Probability : {prob:.4f}")
+  print(f"Final Decision: {'LOAN' if decision == 1 else 'REFUSE'}\n")
+
+  fig, (ax2, ax3) = plt.subplots(1, 2, figsize=(18, 5))
+
+  X_sal = [x[0] for x in X_train]
+  X_exp = [x[1] for x in X_train]
+
+  sal_loan = [X_sal[i] for i in range(len(Y_train)) if Y_train[i] == 1]
+  exp_loan = [X_exp[i] for i in range(len(Y_train)) if Y_train[i] == 1]
+  sal_refuse = [X_sal[i] for i in range(len(Y_train)) if Y_train[i] == 0]
+  exp_refuse = [X_exp[i] for i in range(len(Y_train)) if Y_train[i] == 0]
+
+  ax2.scatter(sal_loan, exp_loan, color='red', label='Loan (1)', s=60)
+  ax2.scatter(sal_refuse, exp_refuse, color='blue', label='Refuse (0)', s=60)
+  ax2.set_xlabel('Salary (million)')
+  ax2.set_ylabel('Experience (years)')
+  ax2.set_title('Raw Data Distribution')
+  ax2.legend()
+  ax2.grid(True, linestyle='--', alpha=0.6)
+
+  ax3.scatter(sal_loan, exp_loan, color='red', label='Loan (1)', s=60)
+  ax3.scatter(sal_refuse, exp_refuse, color='blue', label='Refuse (0)', s=60)
+
+  min_sal, max_sal = min(X_sal) - 0.5, max(X_sal) + 0.5
+  sal_line = [min_sal, max_sal]
+  if w2 != 0:
+      exp_line = [(-w1 * min_sal - w0) / w2, (-w1 * max_sal - w0) / w2]
+      ax3.plot(sal_line, exp_line, color='green', linewidth=3, label='Decision Boundary')
+
+  ax3.set_xlabel('Salary (million)')
+  ax3.set_ylabel('Experience (years)')
+  ax3.set_title('Data & Decision Boundary (Extras)')
+  ax3.legend()
+  ax3.grid(True, linestyle='--', alpha=0.6)
+
+  y_min, y_max = min(X_exp) - 0.5, max(X_exp) + 0.5
+  ax2.set_ylim(y_min, y_max)
+  ax3.set_ylim(y_min, y_max)
+  ax2.set_xlim(min_sal, max_sal)
+  ax3.set_xlim(min_sal, max_sal)
+
+  plt.tight_layout()
+  plt.show()
