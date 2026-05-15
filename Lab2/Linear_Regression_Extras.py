@@ -67,7 +67,7 @@ if __name__ == "__main__":
     plt.figure(figsize=(10, 6))
     plt.scatter(X, Y, color='blue', label='Actual Data', zorder=2)
     plt.plot(x_line, y_line, color='red', label=f'y = {w1:.2f}x + {w0:.2f}', zorder=1)
-    plt.title("Linear Regression")
+    plt.title("Linear Regression (Extras)")
     plt.xlabel("X")
     plt.ylabel("Y")
     plt.legend()
