@@ -66,7 +66,7 @@ def train(X, Y, lr, epochs, verbose=True):
     loss = compute_loss(X, Y, w0, w1, w2)
     loss_history.append(loss)
 
-    if verbose and (epoch % 200 == 0 or epoch == epochs - 1):
+    if verbose and (epoch % 10000 == 0 or epoch == epochs - 1):
       print(f"Epoch {epoch:4d} | Loss: {loss:.4f} | Weights: w0={w0:.3f}, w1={w1:.3f}, w2={w2:.3f}")
 
   return w0, w1, w2, loss_history
@@ -84,7 +84,7 @@ if __name__ == "__main__":
   X_train, Y_train = load_data(csv_path)
 
   learning_rate = 0.1
-  epochs = 1000
+  epochs = 190000
   w0, w1, w2, losses = train(X_train, Y_train, learning_rate, epochs)
 
   test_profile = [7.0, 0.5]
@@ -96,8 +96,6 @@ if __name__ == "__main__":
   print(f"\nPrediction Probability : {prob:.4f}")
   print(f"Final Decision: {'LOAN' if decision == 1 else 'REFUSE'}\n")
 
-  fig, (ax2, ax3) = plt.subplots(1, 2, figsize=(18, 5))
-
   X_sal = [x[0] for x in X_train]
   X_exp = [x[1] for x in X_train]
 
@@ -106,34 +104,25 @@ if __name__ == "__main__":
   sal_refuse = [X_sal[i] for i in range(len(Y_train)) if Y_train[i] == 0]
   exp_refuse = [X_exp[i] for i in range(len(Y_train)) if Y_train[i] == 0]
 
-  ax2.scatter(sal_loan, exp_loan, color='red', label='Loan (1)', s=60)
-  ax2.scatter(sal_refuse, exp_refuse, color='blue', label='Refuse (0)', s=60)
-  ax2.set_xlabel('Salary (million)')
-  ax2.set_ylabel('Experience (years)')
-  ax2.set_title('Raw Data Distribution')
-  ax2.legend()
-  ax2.grid(True, linestyle='--', alpha=0.6)
-
-  ax3.scatter(sal_loan, exp_loan, color='red', label='Loan (1)', s=60)
-  ax3.scatter(sal_refuse, exp_refuse, color='blue', label='Refuse (0)', s=60)
+  plt.figure(figsize=(10, 6))
+  plt.scatter(sal_loan, exp_loan, color='red', label='Loan (1)', s=60)
+  plt.scatter(sal_refuse, exp_refuse, color='blue', label='Refuse (0)', s=60)
 
   min_sal, max_sal = min(X_sal) - 0.5, max(X_sal) + 0.5
   sal_line = [min_sal, max_sal]
   if w2 != 0:
       exp_line = [(-w1 * min_sal - w0) / w2, (-w1 * max_sal - w0) / w2]
-      ax3.plot(sal_line, exp_line, color='green', linewidth=3, label='Decision Boundary')
+      plt.plot(sal_line, exp_line, color='green', linewidth=3, label='Decision Boundary')
 
-  ax3.set_xlabel('Salary (million)')
-  ax3.set_ylabel('Experience (years)')
-  ax3.set_title('Data & Decision Boundary (Extras)')
-  ax3.legend()
-  ax3.grid(True, linestyle='--', alpha=0.6)
+  plt.xlabel('Salary (million)')
+  plt.ylabel('Experience (years)')
+  plt.title('Data & Decision Boundary (Extras)')
+  plt.legend()
+  plt.grid(True, linestyle='--', alpha=0.6)
 
   y_min, y_max = min(X_exp) - 0.5, max(X_exp) + 0.5
-  ax2.set_ylim(y_min, y_max)
-  ax3.set_ylim(y_min, y_max)
-  ax2.set_xlim(min_sal, max_sal)
-  ax3.set_xlim(min_sal, max_sal)
+  plt.ylim(y_min, y_max)
+  plt.xlim(min_sal, max_sal)
 
   plt.tight_layout()
   plt.show()
