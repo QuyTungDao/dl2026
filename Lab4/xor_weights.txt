@@ -1,0 +1,15 @@
+# Layer 1: two hidden neurons
+layer 1
+neuron 1
+bias 1.5
+weights -1 -1
+
+neuron 2
+bias -0.5
+weights 1 1
+
+# Layer 2: output neuron
+layer 2
+neuron 1
+bias -1.5
+weights 1 1
