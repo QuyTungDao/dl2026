@@ -1,0 +1,73 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+
+\title{Labwork 5: Neural Network with Backpropagation}
+\author{Dao Quy Tung}
+\date{Deep Learning 2026}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+In this labwork, we implement the Backpropagation algorithm from scratch to train a 2-2-1 Neural Network. The objective is to replace the hard-coded weights used in the previous lab with a systematic learning process based on Gradient Descent. The implementation relies only on standard Python libraries (\texttt{math}, \texttt{random}) and \texttt{matplotlib} for visualization.
+
+\section{Methodology: Backpropagation from Scratch}
+To keep the implementation readable and avoid the use of external numerical libraries like \texttt{numpy}, we created a lightweight \texttt{Matrix} class. The network applies a Sigmoid activation function at both the hidden layer and the output layer. 
+
+For each sample $(x_i, y_i)$, the feedforward pass is calculated as:
+\begin{align*}
+    Z^{(1)} &= X W^{(1)} + b^{(1)} \\
+    A^{(1)} &= \sigma(Z^{(1)}) \\
+    Z^{(2)} &= A^{(1)} W^{(2)} + b^{(2)} \\
+    \hat{y} = A^{(2)} &= \sigma(Z^{(2)})
+\end{align*}
+
+The binary cross-entropy loss is used as the cost function:
+\[ L = -\left(y \log(\hat{y}) + (1 - y) \log(1 - \hat{y})\right) \]
+
+To optimize the weights, we perform backpropagation to compute the gradients:
+\begin{align*}
+    dZ^{(2)} &= A^{(2)} - Y \\
+    dW^{(2)} &= (A^{(1)})^T \cdot dZ^{(2)} \\
+    db^{(2)} &= dZ^{(2)} \\
+    dA^{(1)} &= dZ^{(2)} \cdot (W^{(2)})^T \\
+    dZ^{(1)} &= dA^{(1)} \odot A^{(1)} \odot (1 - A^{(1)}) \\
+    dW^{(1)} &= X^T \cdot dZ^{(1)} \\
+    db^{(1)} &= dZ^{(1)}
+\end{align*}
+
+The gradients are accumulated over all training samples and averaged before each update. After computing the average gradients, the weights and biases are updated using a learning rate $\eta$:
+\[ W^{(k)} = W^{(k)} - \eta dW^{(k)} \]
+\[ b^{(k)} = b^{(k)} - \eta db^{(k)} \]
+
+After training, the program prints the optimized weights and biases of the network.
+
+\section{Experiments and Results}
+
+\subsection{XOR Dataset}
+The network was trained on the XOR dataset for 15,000 epochs with a learning rate of $0.5$. The loss converged to a near-zero value (0.0013), and the model correctly predicted all four XOR cases with high confidence.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{xor_dataset.png}
+    \caption{Training Loss and Decision Boundary for XOR Dataset}
+\end{figure}
+
+\subsection{House Price-Size Dataset}
+A synthetic binary classification dataset was created mapping house size and price to a "Sold Fast" indicator. The features were normalized to $[0, 1]$ before training. The network was trained for 15,000 epochs with a learning rate of $0.1$. The loss successfully converged (0.0338), and the decision boundary accurately separated the two classes.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{house_dataset.png}
+    \caption{Training Loss and Decision Boundary for House Dataset}
+\end{figure}
+
+\section{Conclusion}
+The from-scratch implementation of the Backpropagation algorithm successfully optimized the 2-2-1 neural network to solve non-linear classification problems such as XOR, demonstrating the effectiveness of gradient descent combined with the chain rule.
+
+\end{document}
