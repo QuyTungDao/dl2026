@@ -1,0 +1,200 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{float}
+
+\geometry{margin=1in}
+
+\title{Report 6: Convolutional Neural Network}
+\author{Dao Quy Tung}
+\date{Deep Learning 2026}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+The objective of this labwork is to implement a convolutional neural network for image classification.
+The selected architecture follows the VGG19 block structure and is implemented using PyTorch.
+The model is trained from scratch, so no pretrained weights are loaded.
+
+The experiment uses a generated image dataset with two classes:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+Class & Description \\
+\midrule
+\texttt{horizontal} & Image containing a horizontal bright stripe \\
+\texttt{vertical} & Image containing a vertical bright stripe \\
+\bottomrule
+\end{tabular}
+\caption{Image classification dataset used in the experiment.}
+\end{table}
+
+The input of the model is an RGB image of size \(64 \times 64\), and the output is the predicted class of the input image.
+
+\section{CNN Architecture}
+
+The implemented network follows the VGG19 depth pattern with five convolutional blocks.
+Every convolution uses a \(3 \times 3\) kernel, stride 1, and padding 1, so the spatial size is preserved inside each block.
+Each convolution is followed by batch normalization and ReLU activation.
+At the end of every block, max pooling with a \(2 \times 2\) kernel and stride 2 reduces the width and height by half.
+
+The input is an RGB tensor of size \(3 \times 64 \times 64\).
+The complete convolutional path is:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccc}
+\toprule
+Stage & Convolutions & Output channels & Spatial size after pooling \\
+\midrule
+Input & -- & 3 & \(64 \times 64\) \\
+Block 1 & 2 & 8 & \(32 \times 32\) \\
+Block 2 & 2 & 16 & \(16 \times 16\) \\
+Block 3 & 4 & 32 & \(8 \times 8\) \\
+Block 4 & 4 & 64 & \(4 \times 4\) \\
+Block 5 & 4 & 64 & \(2 \times 2\) \\
+\bottomrule
+\end{tabular}
+\caption{Convolutional blocks and tensor dimensions.}
+\end{table}
+
+The five blocks contain \(2+2+4+4+4=16\) convolutional layers.
+For this CPU experiment, the standard VGG channel widths are multiplied by \texttt{channel\_scale = 0.125}, producing \(8,16,32,64,64\) channels.
+This preserves the depth and block organization of VGG19 while reducing computation.
+
+After the final pooling layer, adaptive average pooling keeps the feature map at \(2 \times 2\).
+The resulting \(64 \times 2 \times 2=256\) features are flattened and passed through the classifier:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcc}
+\toprule
+Stage & Transformation & Activation \\
+\midrule
+Fully connected 1 & \(256 \rightarrow 128\) & ReLU and Dropout \(0.5\) \\
+Fully connected 2 & \(128 \rightarrow 128\) & ReLU and Dropout \(0.5\) \\
+Output & \(128 \rightarrow 2\) & Class logits \\
+\bottomrule
+\end{tabular}
+\caption{Classifier architecture.}
+\end{table}
+
+The network therefore contains 16 convolutional layers and 3 fully connected layers, giving 19 trainable layers in the VGG19 pattern.
+It has \(364714\) trainable parameters in this scaled configuration.
+The final layer returns two logits, one for each class; an explicit softmax layer is unnecessary because PyTorch cross-entropy loss applies the required log-softmax operation internally.
+
+\section{Experiment Output and Metrics}
+
+The generated dataset is balanced and divided into independent training, validation, and test sets:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lrrr}
+\toprule
+Split & Horizontal & Vertical & Total \\
+\midrule
+Training & 40 & 40 & 80 \\
+Validation & 10 & 10 & 20 \\
+Test & 10 & 10 & 20 \\
+\bottomrule
+\end{tabular}
+\caption{Dataset split used in the experiment.}
+\end{table}
+
+The experiment configuration is:
+
+\[
+\text{image size} = 64 \times 64,\quad
+\text{epochs} = 10,\quad
+\text{batch size} = 8,\quad
+\text{learning rate} = 0.001
+\]
+
+The model was initialized randomly and trained from scratch on CPU with seed 7.
+Cross-entropy was used as the loss function, and Adam was used as the optimizer.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ccccc}
+\toprule
+Epoch & Train Loss & Train Accuracy & Validation Loss & Validation Accuracy \\
+\midrule
+1 & 0.4859 & 0.6625 & 0.6938 & 0.5000 \\
+2 & 0.0841 & 1.0000 & 1.3944 & 0.5000 \\
+3 & 0.0380 & 0.9750 & 3.9379 & 0.5000 \\
+4 & 0.0063 & 1.0000 & 0.4641 & 0.9500 \\
+5 & 0.0041 & 1.0000 & 0.0000 & 1.0000 \\
+10 & 0.0016 & 1.0000 & 0.0000 & 1.0000 \\
+\bottomrule
+\end{tabular}
+\caption{Selected training and validation output.}
+\end{table}
+
+At epoch 1, the training accuracy was \(66.25\%\), while the validation accuracy was \(50\%\), which is the chance-level result for two balanced classes.
+During epochs 2 and 3, training accuracy rapidly reached nearly \(100\%\), but validation accuracy remained at \(50\%\) and validation loss increased to \(3.9379\).
+This indicates that the early model was making confident predictions on the training set before its behavior generalized to the validation set.
+The small dataset and the still-developing batch-normalization statistics can make these first validation measurements unstable.
+
+At epoch 4, validation accuracy increased to \(95\%\) and validation loss decreased to \(0.4641\).
+By epoch 5, both training and validation accuracy reached \(100\%\), and validation loss fell to approximately \(2.19 \times 10^{-6}\).
+Validation accuracy then remained at \(100\%\) through epoch 10.
+Training loss fluctuated slightly after epoch 5 because mini-batch optimization and dropout remain stochastic during training, but training accuracy stayed at \(100\%\).
+
+These results show that the model converged quickly after the initial unstable epochs.
+However, the perfect validation result should be interpreted in the context of the small synthetic dataset: horizontal and vertical stripes have a strong visual difference, so the result does not imply the same performance on a more complex real-world image dataset.
+
+The final test metrics are:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{cc}
+\toprule
+Metric & Value \\
+\midrule
+Accuracy & 1.0000 \\
+Macro Precision & 1.0000 \\
+Macro Recall & 1.0000 \\
+Macro F1-score & 1.0000 \\
+Cross-entropy loss & \(4.88 \times 10^{-6}\) \\
+\bottomrule
+\end{tabular}
+\caption{Final classification metrics on the test set.}
+\end{table}
+
+The confusion matrix is:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ccc}
+\toprule
+True class & Predicted horizontal & Predicted vertical \\
+\midrule
+horizontal & 10 & 0 \\
+vertical & 0 & 10 \\
+\bottomrule
+\end{tabular}
+\caption{Confusion matrix on the test set.}
+\end{table}
+
+The model correctly classifies all test images in this dataset.
+The task is simple because the two classes are visually very different, but it is still useful for verifying that the CNN pipeline works end-to-end.
+
+\section{Conclusion}
+
+In this labwork, a VGG19-style convolutional neural network was implemented using PyTorch.
+The model was trained from scratch without pretrained weights.
+The implementation includes dataset generation, image loading, CNN training, test evaluation, and classification metrics.
+
+The final result shows that the implemented CNN can solve the selected image classification problem successfully.
+The model reaches \(1.0000\) accuracy, precision, recall, and F1-score on the test set.
+
+\end{document}
